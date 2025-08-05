@@ -97,21 +97,23 @@ ignore_results:
 	jmp devide
 
 got_reminder:
-	lda #0	;	Store carry flag for next devide 
+	lda number	;	Last nanugii bit 
 	rol
-	tax
+	sta number
+	lda number+1
+	rol 
+	sta number+1
 
 	lda mod10
 	adc #"0"
 	jsr print_char
-		
-	txa	;	Carry flag is stored in the least sig bit of x register
-	lsr
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
 
 	jmp devide
+
+
 
 
   ldx #0
