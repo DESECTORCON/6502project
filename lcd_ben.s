@@ -16,6 +16,7 @@ iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
 
+
 reset:
   ldx #$ff
   txs
