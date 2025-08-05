@@ -90,7 +90,7 @@ ignore_results:
 	dex
 	stx iterations
 	beq got_reminder
-	jsr devide
+	jmp devide
 
 got_reminder:
 	lda #0	;	Store carry flag for next devide 
@@ -107,7 +107,7 @@ got_reminder:
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
 
-	jsr devide
+	jmp devide
 
 
   ldx #0
