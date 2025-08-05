@@ -48,21 +48,22 @@ reset:
 	sta mod10
 	sta mod10+1
 
+	lda #16	;	Load default iterations value
+	sta iterations
+
 	clc	; Clear carry flag => this carry flag is the first bit to be pushed into number
 			
 devide:
 	lda number	; Load low number byte
 	rol	; Rotate left low number byte
 	sta number	
-	lda number + 1	;	Load high number byte
+	lda number + 2	;	Load high number byte
 	rol	;	Rotate left high number byte, carry in from low byte
 	sta number + 1	
 	lda mod10
-	tax
 	rol 
 	sta mod10
 	lda mod10 + 1
-	tay
 	rol 
 	sta mod10 + 1
 
