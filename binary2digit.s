@@ -7,10 +7,10 @@ E  = %00000100
 RW = %00000010
 RS = %00000001
 
-number = $0200		; Two bytes
+number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
 
-message = $0204		; 6 bytes
+message = $0204		; 6 bytes => bcd data
 
 iterations = $0300	; 1 byte => usually 0~16
 
@@ -18,7 +18,7 @@ iterations = $0300	; 1 byte => usually 0~16
 
 
 reset:
-  ldx #$ff
+  ldx #$ff	;	Set stack pointer to largest value
   txs
 
   lda #%11111111 ; Set all pins on port B to output
@@ -44,7 +44,7 @@ reset:
 	lda #%00000001	; Store higher byte of 16 bit number
 	sta number+1
 
-	lda #%00000000 	;	Reset mod10 bytes
+	lda #0  ;	Reset mod10 bytes
 	sta mod10
 	sta mod10+1
 
@@ -58,14 +58,16 @@ devide:
 	rol	;	Rotate left high number byte, carry in from low byte
 	sta number + 1	
 	lda mod10
+	tax
 	rol 
 	sta mod10
 	lda mod10 + 1
+	tay
 	rol 
 	sta mod10 + 1
 
 
-	lda number	;	 Check if Last division resulated in zero times ten
+	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
 	beq loop
 
