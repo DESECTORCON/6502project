@@ -57,7 +57,7 @@ devide:
 	lda number	; Load low number byte
 	rol	; Rotate left low number byte
 	sta number	
-	lda number + 2	;	Load high number byte
+	lda number + 1	;	Load high number byte
 	rol	;	Rotate left high number byte, carry in from low byte
 	sta number + 1	
 	lda mod10
@@ -103,13 +103,18 @@ got_reminder:
 	lda number+1
 	rol 
 	sta number+1
-
+	
+	clc	;	Reset carry bit 
 	lda mod10
 	adc #"0"
 	jsr print_char
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
+
+	lda #0	;	Reset mod10 bytes for new reminder
+	sta mod10
+	sta mod10+1
 
 	jmp devide
 
