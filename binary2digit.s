@@ -68,10 +68,6 @@ devide:
 	sta mod10 + 1
 
 
-	lda number	;	 Check if Last division resulated in zero 
-	ora number + 1	
-	beq loop
-
 
 	sec	;	Set carry flag so no unintentional borrow is done from last rotate left
 	lda mod10
@@ -115,6 +111,11 @@ got_reminder:
 	lda #0	;	Reset mod10 bytes for new reminder
 	sta mod10
 	sta mod10+1
+
+	lda number	;	 Check if Last division resulated in zero 
+	ora number + 1	
+	beq loop
+
 
 	jmp devide
 
