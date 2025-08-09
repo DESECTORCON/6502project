@@ -38,7 +38,7 @@ reset:
 
 
 	; BCD array nullify
-	lda #0
+	lda #%00000000
 	sta bcd
 	sta bcd + 1
 	sta bcd + 2
@@ -111,8 +111,6 @@ got_reminder:
 	rol 
 	sta number+1
 	
-	clc	;	Reset carry bit
-
 	;	Add BCD digit to char array 
 	lda mod10
 	ldx #0	;	BCD char array pos
@@ -121,7 +119,6 @@ shift_bcds:
 	sta bcd	, x
 	tya
 	inx
-	
 	cpx #5
 	bne shift_bcds
 
@@ -136,16 +133,19 @@ shift_bcds:
 	ora number + 1	
 	beq print	;	Print out the result if bcd conversition is complete
 
+	clc	;	Reset carry bit
+
 	jmp devide
 
 print:
   ldx #0
 print_loop:
   lda bcd,x
-  beq loop
-  jsr print_char
+	jsr print_char
   inx
-	jmp print_loop
+	cpx #5
+	bne print_loop
+	jmp loop
 
 loop:
   jmp loop
