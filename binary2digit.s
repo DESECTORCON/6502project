@@ -113,6 +113,8 @@ got_reminder:
 	
 	;	Add BCD digit to char array 
 	lda mod10
+	clc
+	adc #"0"
 	ldx #0	;	BCD char array pos
 shift_bcds:
 	ldy bcd , x
