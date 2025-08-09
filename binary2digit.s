@@ -115,14 +115,18 @@ got_reminder:
 	rol 
 	sta number+1
 	
-	clc	;	Reset carry bit 
+	clc	;	Reset carry bit
+
+	;	Add BCD digit to char array 
 	lda mod10
-	ldx message_pos
-	adc #"0"
-	sta bcd,x
+	ldx #0	;	BCD char array pos
+shift_bcds:
+	ldy bcd , x
+	sta bcd	, x
+	tya
 	inx
-	stx message_pos
-	;jsr print_char
+	bne shift_bcds	
+
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
