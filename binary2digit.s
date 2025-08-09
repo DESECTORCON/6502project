@@ -37,10 +37,6 @@ reset:
 
 
 
-
-	lda #0	; Set end null byte for bcd char array termination
-	sta bcd+5
-
 	; BCD array nullify
 	lda #0
 	sta bcd
@@ -125,8 +121,9 @@ shift_bcds:
 	sta bcd	, x
 	tya
 	inx
-	bne shift_bcds	
-
+	
+	cpx #5
+	bne shift_bcds
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
