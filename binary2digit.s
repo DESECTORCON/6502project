@@ -10,7 +10,7 @@ RS = %00000001
 ;	Binary2BCD
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
-message = $0204		; 6 bytes => bcd data
+bcd = $0204		; 6 bytes => bcd data
 message_pos = $0301	;	1 byte => bcd write pos
 iterations = $0300	; 1 byte => usually 0~16
 
@@ -35,8 +35,20 @@ reset:
   lda #$00000001 ; Clear display
   jsr lcd_instruction
 
-	lda #0	; Set end null byte for message termination
-	sta message+5
+
+
+
+	lda #0	; Set end null byte for bcd char array termination
+	sta bcd+5
+
+	; BCD array nullify
+	lda #0
+	sta bcd
+	sta bcd + 1
+	sta bcd + 2
+	sta bcd + 3
+	sta bcd + 4
+	sta bcd + 5
 
 	;	Store number 510 in ram
 	lda #%11111110	; Store lower byte of 16 bit number
@@ -107,7 +119,7 @@ got_reminder:
 	lda mod10
 	ldx message_pos
 	adc #"0"
-	sta message,x
+	sta bcd,x
 	inx
 	stx message_pos
 	;jsr print_char
@@ -121,15 +133,14 @@ got_reminder:
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	;beq loop
-	beq print
+	beq print	;	Print out the result if bcd conversition is complete
 
 	jmp devide
 
 print:
   ldx #0
 print_loop:
-  lda message,x
+  lda bcd,x
   beq loop
   jsr print_char
   inx
