@@ -1,17 +1,17 @@
+;	I/O 
 PORTB = $6000
 PORTA = $6001
 DDRB = $6002
 DDRA = $6003
-
+;	LCD
 E  = %00000100
 RW = %00000010
 RS = %00000001
-
+;	Binary2BCD
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
-
 message = $0204		; 6 bytes => bcd data
-
+message_pos = $0301	;	1 byte => bcd write pos
 iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
@@ -50,6 +50,9 @@ reset:
 
 	lda #16	;	Load default iterations value
 	sta iterations
+
+	lda #0	;	Message write position value: will increment as convertion commences
+	sta message_pos
 
 	clc	; Clear carry flag => this carry flag is the first bit to be pushed into number
 			
@@ -102,8 +105,12 @@ got_reminder:
 	
 	clc	;	Reset carry bit 
 	lda mod10
+	ldx message_pos
 	adc #"0"
-	jsr print_char
+	sta message,x
+	inx
+	stx message_pos
+	;jsr print_char
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
@@ -114,21 +121,19 @@ got_reminder:
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	beq loop
-
+	;beq loop
+	beq print
 
 	jmp devide
 
-
-
-
-  ldx #0
 print:
+  ldx #0
+print_loop:
   lda message,x
   beq loop
   jsr print_char
   inx
-  jmp print
+	jmp print_loop
 
 loop:
   jmp loop
