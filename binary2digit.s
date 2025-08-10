@@ -7,6 +7,7 @@ DDRA = $6003
 E  = %00000100
 RW = %00000010
 RS = %00000001
+datacheck = $0400	;	6 bytes => For checking new data by comparing
 ;	Binary2BCD
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
@@ -203,12 +204,25 @@ print_char:
 
 nmi:
 irq:
+	pha	;	Backing up registors so that when return from intrrupt
+	txa	;	the code can run as right before the intrrupt	
+	pha	
+	tya
+	pha
+	php	
 	lda number 
 	adc #1
 	sta number
 	lda number + 1
 	adc #0 
 	sta number + 1
+	plp		
+	pla
+	tay
+	pla
+	tax
+	pla	
+		
 	rti	
 
 
