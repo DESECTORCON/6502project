@@ -144,13 +144,24 @@ print:
   ldx #0
 print_loop:
   lda bcd,x
+	sta datacheck,x	;	Keeps track whats on screen
 	beq loop	;	Checks for null byte for array termination
 	jsr print_char
   inx
 	jmp print_loop
 
 loop:
-  jmp loop
+	ldx #0
+checkforchange:	;	Checking if there was change since last lcd write
+	lda bcd, x
+	sbc datacheck, x
+	bne print
+	sec
+	cpx #5
+	sec	;	Carry bit can cause bugs=> disabled
+	bne checkforchange		
+		
+	jmp loop
 
 
 
