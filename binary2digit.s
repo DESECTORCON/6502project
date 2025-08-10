@@ -45,10 +45,10 @@ reset:
 	sta bcd + 4
 	sta bcd + 5
 
-	;	Store number 510 in ram
-	lda #%11111110	; Store lower byte of 16 bit number
+	;	Reset number
+	lda #0; Store lower byte of 16 bit number
 	sta number
-	lda #%00000001	; Store higher byte of 16 bit number
+	lda #0; Store higher byte of 16 bit number
 	sta number+1
 
 	lda #0  ;	Reset mod10 bytes
@@ -194,6 +194,18 @@ print_char:
   sta PORTA
   rts
 
-  .org $fffc
+nmi:
+irq:
+	lda number 
+	adc #1
+	sta number
+	lda number + 1
+	adc #0 
+	sta number + 1
+	
+	rti	
+
+  .org $fffa
+	.word nmi
   .word reset
-  .word $0000
+	.word irq
