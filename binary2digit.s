@@ -1,4 +1,3 @@
-
 ;	I/O 
 PORTB = $6000
 PORTA = $6001
@@ -18,6 +17,8 @@ iterations = $0300	; 1 byte => usually 0~16
   .org $8000
 
 reset:
+	cli	;	Enable intrrupts defaultly
+
   ldx #$ff	;	Set stack pointer to largest value
   txs
 
@@ -34,7 +35,6 @@ reset:
   jsr lcd_instruction
   lda #$00000001 ; Clear display
   jsr lcd_instruction
-
 
 
 	; BCD array nullify
@@ -154,6 +154,7 @@ loop:
 
 
 lcd_wait:
+	sei	;	Intrrupt disabled when waiting for lcd 
   pha
   lda #%00000000  ; Port B is input
   sta DDRB
@@ -171,6 +172,7 @@ lcdbusy:
   lda #%11111111  ; Port B is output
   sta DDRB
   pla
+	cli	;	Enable Intrrupts
   rts
 
 lcd_instruction:
@@ -179,9 +181,11 @@ lcd_instruction:
   lda #0         ; Clear RS/RW/E bits
   sta PORTA
   lda #E         ; Set E bit to send instruction
+	sei	;	Stop intrrupts when sending data => Enable bit timing 	
   sta PORTA
   lda #0         ; Clear RS/RW/E bits
   sta PORTA
+	cli	;	Intrrupts enabled after Enable signal complete
   rts
 
 print_char:
@@ -189,10 +193,12 @@ print_char:
   sta PORTB
   lda #RS         ; Set RS; Clear RW/E bits
   sta PORTA
+	sei	;	Same as lcd_instruction
   lda #(RS | E)   ; Set E bit to send instruction
   sta PORTA
   lda #RS         ; Clear E bits
   sta PORTA
+	cli
   rts
 
 nmi:
@@ -203,9 +209,11 @@ irq:
 	lda number + 1
 	adc #0 
 	sta number + 1
-	
 	rti	
 
+
+
+;							VECTORS	
   .org $fffa
 	.word nmi
   .word reset
