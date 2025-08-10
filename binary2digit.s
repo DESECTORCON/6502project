@@ -16,7 +16,6 @@ iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
 
-
 reset:
   ldx #$ff	;	Set stack pointer to largest value
   txs
@@ -143,11 +142,10 @@ print:
   ldx #0
 print_loop:
   lda bcd,x
+	beq loop	;	Checks for null byte for array termination
 	jsr print_char
   inx
-	cpx #5
-	bne print_loop
-	jmp loop
+	jmp print_loop
 
 loop:
   jmp loop
