@@ -134,14 +134,15 @@ shift_bcds:
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	beq print	;	Print out the result if bcd conversition is complete
+	jmp devide_complete ;	Return where the devide sub is called 
+											;	number is converted to bcd and stored in bcd after this
 
 	clc	;	Reset carry bit
 
 	jmp devide
 
 print:
-	lda #%00000001	;	Clears display
+	lda #%00000001	;	Clear display
 	jsr lcd_instruction
   ldx #0
 print_loop:
@@ -150,11 +151,11 @@ print_loop:
 	beq loop	;	Checks for null byte for array termination
 	jsr print_char
   inx
-	jmp print_loop
+	jmp print_loop	;	Looping until all bcds printed
 
 loop:
-refresh:
-	jsr devide	
+	jsr devide
+devide_complete:
 	ldx #0
 checkforchange:	;	Checking if there was change since last lcd write
 	lda bcd, x
@@ -163,7 +164,7 @@ checkforchange:	;	Checking if there was change since last lcd write
 	sec
 	cpx #5
 	sec	;	Carry bit can cause bugs=> disabled
-	bne checkforchange		
+	bne checkforchange
 		
 	jmp loop
 
