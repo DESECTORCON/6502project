@@ -161,6 +161,7 @@ checkforchange:	;	Checking if there was change since last lcd write
 	lda bcd, x
 	sbc datacheck, x
 	bne	print 	
+	inx	;	Increment pos x
 	sec
 	cpx #5
 	sec	;	Carry bit can cause bugs=> disabled
@@ -225,7 +226,6 @@ irq:
 	pha	
 	tya
 	pha
-	php
 	
 	lda number 
 	adc #1
@@ -234,7 +234,6 @@ irq:
 	adc #0 
 	sta number + 1
 
-	plp		
 	pla
 	tay
 	pla
