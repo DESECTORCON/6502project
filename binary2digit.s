@@ -141,6 +141,8 @@ shift_bcds:
 	jmp devide
 
 print:
+	lda #%00000001	;	Clears display
+	jsr lcd_instruction
   ldx #0
 print_loop:
   lda bcd,x
@@ -151,11 +153,13 @@ print_loop:
 	jmp print_loop
 
 loop:
+refresh:
+	jsr devide	
 	ldx #0
 checkforchange:	;	Checking if there was change since last lcd write
 	lda bcd, x
 	sbc datacheck, x
-	bne print
+	bne	print 	
 	sec
 	cpx #5
 	sec	;	Carry bit can cause bugs=> disabled
@@ -220,13 +224,15 @@ irq:
 	pha	
 	tya
 	pha
-	php	
+	php
+	
 	lda number 
 	adc #1
 	sta number
 	lda number + 1
 	adc #0 
 	sta number + 1
+
 	plp		
 	pla
 	tay
