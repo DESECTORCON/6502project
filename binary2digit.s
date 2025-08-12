@@ -38,14 +38,8 @@ reset:
   jsr lcd_instruction
 
 
-	; BCD array nullify
-	lda #%00000000
-	sta bcd
-	sta bcd + 1
-	sta bcd + 2
-	sta bcd + 3
-	sta bcd + 4
-	sta bcd + 5
+		sta datacheck + 5	;	datacheck 6th bit should be nullified
+										; to indicate end of data 
 
 	;	Reset number
 	lda #0; Store lower byte of 16 bit number
@@ -66,6 +60,15 @@ reset:
 	clc	; Clear carry flag => this carry flag is the first bit to be pushed into number
 			
 devide:
+	; BCD array nullify
+	lda #%00000000
+	sta bcd
+	sta bcd + 1
+	sta bcd + 2
+	sta bcd + 3
+	sta bcd + 4
+	sta bcd + 5
+devide_loop:
 	lda number	; Load low number byte
 	rol	; Rotate left low number byte
 	sta number	
@@ -78,7 +81,6 @@ devide:
 	lda mod10 + 1
 	rol 
 	sta mod10 + 1
-
 
 
 	sec	;	Set carry flag so no unintentional borrow is done from last rotate left
@@ -102,7 +104,7 @@ ignore_results:
 	dex
 	stx iterations
 	beq got_reminder
-	jmp devide
+	jmp devide_loop
 
 got_reminder:
 	lda number	;	Last nanugii bit 
@@ -138,8 +140,7 @@ shift_bcds:
 											;	number is converted to bcd and stored in bcd after this
 
 	clc	;	Reset carry bit
-
-	jmp devide
+	jmp devide_loop
 
 print:
 	lda #%00000001	;	Clear display
@@ -149,12 +150,13 @@ print_loop:
   lda bcd,x
 	sta datacheck,x	;	Keeps track whats on screen
 	beq loop	;	Checks for null byte for array termination
+						; Last bit is always null 
 	jsr print_char
   inx
 	jmp print_loop	;	Looping until all bcds printed
 
 loop:
-	jsr devide
+	jmp devide
 devide_complete:
 	ldx #0
 checkforchange:	;	Checking if there was change since last lcd write
