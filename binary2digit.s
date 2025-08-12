@@ -7,7 +7,6 @@ DDRA = $6003
 E  = %00000100
 RW = %00000010
 RS = %00000001
-datacheck = $0400	;	6 bytes => For checking new data by comparing
 ;	Binary2BCD
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
@@ -37,9 +36,6 @@ reset:
   lda #$00000001 ; Clear display
   jsr lcd_instruction
 
-
-		sta datacheck + 5	;	datacheck 6th bit should be nullified
-										; to indicate end of data 
 
 	;	Reset number
 	lda #0; Store lower byte of 16 bit number
@@ -136,41 +132,25 @@ shift_bcds:
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	jmp devide_complete ;	Return where the devide sub is called 
-											;	number is converted to bcd and stored in bcd after this
+	beq devide_complete	
 
 	clc	;	Reset carry bit
 	jmp devide_loop
 
-print:
-	lda #%00000001	;	Clear display
-	jsr lcd_instruction
-  ldx #0
-print_loop:
-  lda bcd,x
-	sta datacheck,x	;	Keeps track whats on screen
-	beq loop	;	Checks for null byte for array termination
-						; Last bit is always null 
-	jsr print_char
-  inx
-	jmp print_loop	;	Looping until all bcds printed
-
 loop:
 	jmp devide
 devide_complete:
+	lda #%00000010
+	jsr lcd_instruction	
 	ldx #0
-checkforchange:	;	Checking if there was change since last lcd write
-	lda bcd, x
-	sbc datacheck, x
-	bne	print 	
-	inx	;	Increment pos x
-	sec
-	cpx #5
-	sec	;	Carry bit can cause bugs=> disabled
-	bne checkforchange
+printloop:
+	lda bcd,x
+	beq loop
+	jsr print_char
+	inx
+	jmp printloop
+	
 		
-	jmp loop
-
 
 
 lcd_wait:
