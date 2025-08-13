@@ -15,9 +15,9 @@ message_pos = $0301	;	1 byte => bcd write pos
 iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
-
+	.include lib.s
 reset:
-	cli	;	Enable intrrupts defaultly
+	cli	;	Enable intrrupts (default) 
 
   ldx #$ff	;	Set stack pointer to largest value
   txs
