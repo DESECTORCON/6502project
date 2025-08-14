@@ -15,7 +15,9 @@ message_pos = $0301	;	1 byte => bcd write pos
 iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
+
 	.include lib.s
+
 reset:
 	cli	;	Enable intrrupts (default) 
 
@@ -33,10 +35,8 @@ reset:
   jsr lcd_instruction
   lda #%00000110 ; Increment and shift cursor; don't shift display
   jsr lcd_instruction
-  lda #$00000001 ; Clear display
-  jsr lcd_instruction
-
-
+	jsr lcd_clear 
+ 
 	;	Reset number
 	lda #0; Store lower byte of 16 bit number
 	sta number
@@ -57,7 +57,7 @@ reset:
 			
 devide:
 	; BCD array nullify
-	lda #%00000000
+	lda #0
 	sta bcd
 	sta bcd + 1
 	sta bcd + 2
@@ -120,7 +120,7 @@ shift_bcds:
 	sta bcd	, x
 	tya
 	inx
-	cpx #5
+	cpx #6
 	bne shift_bcds
 
 	lda #16 	;	Ready iteration value for next digit
@@ -140,8 +140,7 @@ shift_bcds:
 loop:
 	jmp devide
 devide_complete:
-	lda #%00000010
-	jsr lcd_instruction	
+	jsr lcd_chome
 	ldx #0
 printloop:
 	lda bcd,x
@@ -150,8 +149,17 @@ printloop:
 	inx
 	jmp printloop
 	
-		
 
+
+lcd_chome:
+	lda #%00000010
+	jsr lcd_instruction
+	rts	
+
+lcd_clear:
+	lda #%00000001
+	jsr lcd_instruction
+	rts
 
 lcd_wait:
 	sei	;	Intrrupt disabled when waiting for lcd 
