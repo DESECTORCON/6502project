@@ -20,8 +20,7 @@ reset:
 	;	Reset number
 	lda #0; Store lower byte of 16 bit number
 	sta number
-	lda #0; Store higher byte of 16 bit number
-	sta number+1
+	sta number+1	;	Store high byte of 16 bit number
 
 	lda #0  ;	Reset mod10 bytes
 	sta mod10

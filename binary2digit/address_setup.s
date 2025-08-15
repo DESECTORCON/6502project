@@ -13,5 +13,3 @@ mod10 = $0202		; Two bytes
 bcd = $0204		; 6 bytes => bcd data
 message_pos = $0301	;	1 byte => bcd write pos
 iterations = $0300	; 1 byte => usually 0~16
-
-

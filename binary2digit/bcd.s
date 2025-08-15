@@ -63,7 +63,7 @@ shift_bcds:
 	sta bcd	, x
 	tya
 	inx
-	cpx #6
+	cpx #7
 	bne shift_bcds
 
 	lda #16 	;	Ready iteration value for next digit
@@ -79,5 +79,6 @@ shift_bcds:
 
 	clc	;	Reset carry bit
 	jmp devide_loop
-
+devide_complete:
+	rts
 

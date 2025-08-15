@@ -16,8 +16,6 @@ iterations = $0300	; 1 byte => usually 0~16
 
   .org $8000
 
-	.include lib.s
-
 reset:
 	cli	;	Enable intrrupts (default) 
 

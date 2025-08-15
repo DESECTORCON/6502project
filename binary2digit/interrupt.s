@@ -6,6 +6,7 @@ irq:
 	tya
 	pha
 	
+	clc	;	Clear carry bit 	
 	lda number 
 	adc #1
 	sta number
