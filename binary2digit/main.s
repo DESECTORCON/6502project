@@ -10,8 +10,6 @@
 loop:
 	jsr devide
 	jsr lcd_chome
-;	lda #%10000000	;	Sets dram address
-	jsr lcd_instruction
 	ldx #0
 printloop:	;	Printing each character untill null terminator
 	lda bcd,x
