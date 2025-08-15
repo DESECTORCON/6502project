@@ -17,7 +17,7 @@ irq:
 	lda number + 1
 	adc #0 
 	sta number + 1
-	bit IFR	;	Read to clear interrupt flag ca1	
+	bit PORTA	;	Read to clear interrupt flag ca1	
 
 	pla
 	tay
