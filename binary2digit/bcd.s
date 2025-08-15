@@ -1,6 +1,6 @@
 devide:
-	; BCD array nullify
-	lda #0
+	clc	;	Clear carry bit because rotate is used
+	lda #0	; BCD array nullify
 	sta bcd
 	sta bcd + 1
 	sta bcd + 2
