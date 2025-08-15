@@ -1,4 +1,11 @@
 reset:
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;INTERRUPTS
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	lda #%00000000	;	CA1 negative transition interrupt on 
+	sta PCR
+	lda #%10000010	;	Enable interrupt on ca1
+	sta IER
 	cli	;	Enable intrrupts (default) 
 	
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
