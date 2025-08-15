@@ -9,7 +9,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 loop:
 	jsr devide
-	jsr lcd_chome
+;	jsr lcd_chome
+	jsr lcd_clear	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TEMPOARY DEBUG OPTION
 	ldx #0
 printloop:	;	Printing each character untill null terminator
 	lda bcd,x

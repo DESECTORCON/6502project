@@ -7,8 +7,7 @@ irq:
 	pha	;	Backing up registors so that when return from intrrupt
 	txa	;	the code can run as right before the intrrupt	
 	pha	
-	tya
-	pha
+	sty ystack
 	
 	clc	;	Clear carry bit 	
 	lda number 
@@ -19,8 +18,7 @@ irq:
 	sta number + 1
 	bit PORTA	;	Read to clear interrupt flag ca1	
 
-	pla
-	tay
+	ldy ystack
 	pla
 	tax
 	pla	
