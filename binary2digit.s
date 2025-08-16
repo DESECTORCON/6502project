@@ -1,21 +1,19 @@
+;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;
 PORTB = $6000
 PORTA = $6001
 DDRB = $6002
 DDRA = $6003
-
+;;;;;;;;;;;;;;;;;;LCD;;;;;;;;;;;;;;;;;;
 E  = %00000100
 RW = %00000010
 RS = %00000001
-
+;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
-
-message = $0204		; 6 bytes => bcd data
-
-iterations = $0300	; 1 byte => usually 0~16
+bcd = $0204		; 6 bytes => bcd data
+iterations = $020A	; 1 byte => usually 0~16
 
   .org $8000
-
 
 reset:
   ldx #$ff	;	Set stack pointer to largest value
@@ -35,14 +33,14 @@ reset:
   lda #$00000001 ; Clear display
   jsr lcd_instruction
 
-	lda #0	; Set end null byte for message termination
-	sta message+5
-
 	;	Store number 510 in ram
 	lda #%11111110	; Store lower byte of 16 bit number
 	sta number
 	lda #%00000001	; Store higher byte of 16 bit number
 	sta number+1
+
+	lda #0
+	sta bcd + 6
 
 	lda #0  ;	Reset mod10 bytes
 	sta mod10
@@ -103,27 +101,35 @@ got_reminder:
 	clc	;	Reset carry bit 
 	lda mod10
 	adc #"0"
-	jsr print_char
+	ldx #0
+shift_loop:										; Shifts bytes to right to represent numbers in normal format
+	ldy bcd,x
+	sta bcd,x
+	tya
+	inx
+	cpx #5											; Shifts bcd+0 ~ bcd+5 bytes. bcd+6 byte is null indicator to indicate end of array
+	bne shift_loop	
 
 	lda #16 	;	Ready iteration value for next digit
 	sta iterations
-
 	lda #0	;	Reset mod10 bytes for new reminder
 	sta mod10
 	sta mod10+1
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	beq loop
-
-
+	beq print
 	jmp devide
 
-
+print:
+	ldx #0
+print_loop:
+	lda bcd,x
+	jsr print_char
+	inx
+	bne print_loop
 loop:
   jmp loop
-
-
 
 lcd_wait:
   pha
