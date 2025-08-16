@@ -7,13 +7,11 @@ DDRA = $6003
 E  = %00000100
 RW = %00000010
 RS = %00000001
-
+;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;;;;;
 number = $0200		; Two bytes => value to convert to bcd
 mod10 = $0202		; Two bytes 
-
 message = $0204		; 6 bytes => bcd data
-
-iterations = $0300	; 1 byte => usually 0~16
+iterations = $020A	; 1 byte => usually 0~16
 
   .org $8000
 
@@ -68,16 +66,13 @@ devide:
 	rol 
 	sta mod10 + 1
 
-
-
 	sec	;	Set carry flag so no unintentional borrow is done from last rotate left
 	lda mod10
 	sbc #10
 	tax 
 	lda mod10 + 1
 	sbc #0	;	In case a borrow is needed
-	tay 
-	;	Subtracted are in y,x registers. 
+	tay 										;	Subtracted are in y,x registers. 
 
 	bcc ignore_results	;	Ignore results if carry flag is 0, thus the mod10 part is smaller than 10
 	
@@ -117,24 +112,10 @@ got_reminder:
 	ora number + 1	
 	beq loop
 
-
 	jmp devide
-
-
-
-
-  ldx #0
-print:
-  lda message,x
-  beq loop
-  jsr print_char
-  inx
-  jmp print
 
 loop:
   jmp loop
-
-
 
 lcd_wait:
   pha
