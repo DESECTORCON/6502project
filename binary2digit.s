@@ -39,8 +39,8 @@ reset:
 	lda #%00000001	; Store higher byte of 16 bit number
 	sta number+1
 
-	lda #0
-	sta bcd + 6
+	lda #0														; Setting null terminator for bcd array
+	sta bcd + 5
 
 	lda #0  ;	Reset mod10 bytes
 	sta mod10
@@ -64,8 +64,6 @@ devide:
 	lda mod10 + 1
 	rol 
 	sta mod10 + 1
-
-
 
 	sec	;	Set carry flag so no unintentional borrow is done from last rotate left
 	lda mod10
