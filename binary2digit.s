@@ -123,9 +123,10 @@ print:
 	ldx #0
 print_loop:
 	lda bcd,x
-	jsr print_char
+	beq	loop 									; Escape loop when null byte(array terminator) read
+	jsr print_char						; 
 	inx
-	bne print_loop
+	jmp print_loop
 loop:
   jmp loop
 
