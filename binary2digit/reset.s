@@ -4,7 +4,7 @@ reset:
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	lda #%00000000	;	CA1 negative transition interrupt on 
 	sta PCR
-	lda #%10000010	;	Enable interrupt on ca1
+	lda #%10000110	;	Enable interrupt on ca1 and shift register
 	sta IER
 	cli	;	Enable intrrupts (default) 
 	
@@ -21,6 +21,7 @@ reset:
   sta DDRB
   lda #%00000111 ; Set bottom 3 pins on port A to output
   sta DDRA
+	lda #%00011100	;	Shift out enabled for debugging
 
 	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;;;;LCD
@@ -50,3 +51,8 @@ reset:
 
 	lda #0	;	Message write position value: will increment as convertion commences
 	sta message_pos
+
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;;;;DEBUGGER
+	;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	

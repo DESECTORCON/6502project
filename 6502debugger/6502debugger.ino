@@ -13,7 +13,7 @@ void setup() {
 
 void loop() {
 
-	int data = 0x00;
+	int data = 0;
 	for (int i=0;i < 8;i++)
 	{
 		digitalWrite(CLK, LOW);
