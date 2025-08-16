@@ -120,16 +120,6 @@ got_reminder:
 	jmp devide
 
 
-
-
-  ldx #0
-print:
-  lda message,x
-  beq loop
-  jsr print_char
-  inx
-  jmp print
-
 loop:
   jmp loop
 
