@@ -10,8 +10,8 @@ ACR      = $600B																; Timer, shift register, ab port latch control(A
 IFR			 = $600D																;	InterruptFlagRegister IRQ|TIMER1|TIMER2|CB1|CB2|SHIFTREGISTER|CA1|CA2'
 IER			 = $600E																;	Interrupt Enable Register, 7th bit set/clear 
 ;;;;;;;;;;;;;SYSTEM TIME;;;;;;;;;;;;;;;;;
-TIMER_HBYTE		 = %00100111											; Clock cycle number that translates into 1 milisecond (10^3)
-TIMER_LBYTE		 = %00010000 
+TIMER_HBYTE		 = %00000011											; Clock cycle number that translates into 1 milisecond (10^3)
+TIMER_LBYTE		 = %11101000
 systime				 = $5000													; System time. 4 byte value. Roll back occurs after approx 49 days 
 ;;;;;;;;;;;;;;;;;;LCD;;;;;;;;;;;;;;;;;;
 E  						 = %00000100
@@ -30,7 +30,7 @@ iterations = $020A														; 1 byte => usually 0~16
 reset:
   ldx #$ff																		;	Set stack pointer to largest value
   txs
-	cli																					; Interrupt Enable
+	sei																					; Disable interrupts during setup(is enabled at the end of reset block)
 	;;;;;;;;;;;;;;;LCD SETUP;;;;;;;;;;;;;;;;;;;;;
   lda #%11111111 															; Set all pins on port B to output
   sta DDRB
@@ -78,6 +78,7 @@ time_reset:
 	sta iterations
 	clc																; Clear carry flag => this carry flag is the first bit to be pushed into number
 
+	cli																; Interrupt Enable
 bcd_compute:
 	lda #0
 	ldx #4
@@ -154,6 +155,8 @@ shift_loop:										; Shifts bytes to right to represent numbers in normal form
 	jmp devide_loop
 
 print:
+	lda #%00000010						; Setting cursor to home position
+	jsr lcd_instruction
 	ldx #0
 print_loop:
 	lda bcd,x
@@ -162,15 +165,19 @@ print_loop:
 	inx
 	jmp print_loop
 loop:
-	lda	systime
-	cmp #250
-	bne loop
-	lda #"."
-	jsr print_char
-  jmp loop
+	lda systime
+	sta number
+	lda systime + 1
+	sta number + 1
+	jmp bcd_compute
+	;lda	systime 
+	;cmp #250
+	;bne loop
+	;lda systime								; debug. just to see character differing
+	;jsr print_char
+  ;jmp loop
 
 lcd_wait:
-	sei												;	Disable interrupt when waiting for lcd
   pha
   lda #%00000000  ; Port B is input
   sta DDRB
@@ -188,7 +195,6 @@ lcdbusy:
   lda #%11111111  ; Port B is output
   sta DDRB
   pla
-	cli												;	Enable Interrupt
   rts
 
 lcd_instruction:
@@ -224,7 +230,7 @@ irq:
 	pha
 	tya
 	pha
-	
+
 	lda IFR
 	asl
 	asl
@@ -233,9 +239,9 @@ irq:
 	jmp end_interrupt
 
 systimer:																; Add 1ms to systime and carry to all bytes(3)
-	lda systime
+	lda systime  
 	adc #1
-	sta systime
+	sta systime  
 	ldx #1
 carry_loop:
 	lda systime,x
@@ -245,9 +251,7 @@ carry_loop:
 	cpx #4
 	bne carry_loop
 	
-	lda TIMER_LBYTE												; Restart timer2
-	sta T2LOW
-	lda TIMER_HBYTE
+	lda TIMER_HBYTE												; Restart timer2
 	sta T2HIGHC
 	jmp end_interrupt	
 	
