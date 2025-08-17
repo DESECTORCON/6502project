@@ -50,8 +50,15 @@ reset:
 	sta iterations
 
 	clc	; Clear carry flag => this carry flag is the first bit to be pushed into number
-			
-devide:
+
+bcd:
+	lda #0
+	ldx #4
+reset_bytes:
+	sta bcd,x
+	dex
+	bpl reset_bytes											;	loop again only when x is not rolled back(negative)	
+devide_loop:
 	lda number	; Load low number byte
 	rol	; Rotate left low number byte
 	sta number	
@@ -86,7 +93,7 @@ ignore_results:
 	dex
 	stx iterations
 	beq got_reminder
-	jmp devide
+	jmp devide_loop
 
 got_reminder:
 	lda number	;	Last nanugii bit 
@@ -117,7 +124,7 @@ shift_loop:										; Shifts bytes to right to represent numbers in normal form
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
 	beq print
-	jmp devide
+	jmp devide_loop
 
 print:
 	ldx #0
