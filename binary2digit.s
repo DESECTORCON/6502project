@@ -13,12 +13,16 @@ IER			 = $600E																;	Interrupt Enable Register, 7th bit set/clear
 TIMER_HBYTE		 = %00000011											; Clock cycle number that translates into 1 milisecond (10^3)
 TIMER_LBYTE		 = %11101000
 systime				 = $5000													; System time. 4 byte value. Roll back occurs after approx 49 days 
+;;;;;;;;;;;;;;;DELAY;;;;;;;;;;;;;;;;;;;;;
+timestamp 		 = $5059													; Timestamp. 1 byte value 
+timedelta			 = $505A													; Timedelta from timestamp. 1 byte value
 ;;;;;;;;;;;;;;;;;;LCD;;;;;;;;;;;;;;;;;;
 E  						 = %00000100
 RW 						 = %00000010
 RS 						 = %00000001
 last_refresh 	 = $5004													; Last lcd refresh time. 4 byte value
 display_data   = $5008													; Lcd display buffer. 80 byte length 5008~5057
+display_on		 = $5058
 ;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;
 number = $0200																; Two bytes => value to convert to bcd
 mod10 = $0202																	; Two bytes 
@@ -77,6 +81,14 @@ time_reset:
 	lda #16														;	Load iteration num
 	sta iterations
 	clc																; Clear carry flag => this carry flag is the first bit to be pushed into number
+
+	;;;;;;;;;VARIABLE SETUP;;;;;;;;;;;;
+	lda #%00001111
+	sta display_on
+	lda #0
+	sta timestamp
+	lda #0 
+	sta timedelta 
 
 	cli																; Interrupt Enable
 bcd_compute:
@@ -165,17 +177,32 @@ print_loop:
 	inx
 	jmp print_loop
 loop:
+	sec												; Calculating timedelta from timestamp
+	lda systime
+	sbc	timestamp
+	cmp #100
+	bne pass									; Check if its time for display on off toggle: if its not same, then pass
+	lda systime
+	sta timestamp
+	ldx display_on						; Get current display status: not zero = on
+	beq turn_on
+turn_off:										; Just for fun: toggling lcd display on and off
+	lda #%00001000
+	jsr lcd_instruction
+	ldx #%00000000
+	stx display_on	
+	jmp pass
+turn_on:
+	lda #%00001110
+	jsr lcd_instruction
+	ldx #%00001111
+	stx display_on	
+pass:
 	lda systime
 	sta number
 	lda systime + 1
 	sta number + 1
 	jmp bcd_compute
-	;lda	systime 
-	;cmp #250
-	;bne loop
-	;lda systime								; debug. just to see character differing
-	;jsr print_char
-  ;jmp loop
 
 lcd_wait:
   pha
