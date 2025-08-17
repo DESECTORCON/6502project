@@ -1,29 +1,41 @@
+;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;
 ;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;
-PORTB = $6000
-PORTA = $6001
-DDRB = $6002
-DDRA = $6003
+PORTB    = $6000
+PORTA    = $6001
+DDRB     = $6002
+DDRA     = $6003
+T2LOW    = $6008																;	T2 low order latch(write), counter(read)
+T2HIGHC  = $6009																;	T2 high order counter(r/w)	
+ACR      = $600B																; Timer, shift register, ab port latch control(Aux control register)
+IFR			 = $600D																;	InterruptFlagRegister IRQ|TIMER1|TIMER2|CB1|CB2|SHIFTREGISTER|CA1|CA2'
+IER			 = $600E																;	Interrupt Enable Register, 7th bit set/clear 
+;;;;;;;;;;;;;SYSTEM TIME;;;;;;;;;;;;;;;;;
+TIMER_HBYTE		 = %00100111											; Clock cycle number that translates into 1 milisecond (10^3)
+TIMER_LBYTE		 = %00010000 
+systime				 = $5000													; System time. 4 byte value. Roll back occurs after approx 49 days 
 ;;;;;;;;;;;;;;;;;;LCD;;;;;;;;;;;;;;;;;;
-E  = %00000100
-RW = %00000010
-RS = %00000001
+E  						 = %00000100
+RW 						 = %00000010
+RS 						 = %00000001
+last_refresh 	 = $5004													; Last lcd refresh time. 4 byte value
+display_data   = $5008													; Lcd display buffer. 80 byte length 5008~5057
 ;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;
-number = $0200		; Two bytes => value to convert to bcd
-mod10 = $0202		; Two bytes 
-bcd = $0204		; 6 bytes => bcd data
-iterations = $020A	; 1 byte => usually 0~16
+number = $0200																; Two bytes => value to convert to bcd
+mod10 = $0202																	; Two bytes 
+bcd = $0204																		; 6 bytes => bcd data
+iterations = $020A														; 1 byte => usually 0~16
 
   .org $8000
 
 reset:
-  ldx #$ff	;	Set stack pointer to largest value
+  ldx #$ff																		;	Set stack pointer to largest value
   txs
-
-  lda #%11111111 ; Set all pins on port B to output
+	cli																					; Interrupt Enable
+	;;;;;;;;;;;;;;;LCD SETUP;;;;;;;;;;;;;;;;;;;;;
+  lda #%11111111 															; Set all pins on port B to output
   sta DDRB
-  lda #%00000111 ; Set bottom 3 pins on port A to output
+  lda #%00000111 															; Set bottom 3 pins on port A to output
   sta DDRA
-
   lda #%00111000 ; Set 8-bit mode; 2-line display; 5x8 font
   jsr lcd_instruction
   lda #%00001110 ; Display on; cursor on; blink off
@@ -33,25 +45,40 @@ reset:
   lda #$00000001 ; Clear display
   jsr lcd_instruction
 
+	;;;;;;;;;;;;;;;;;TIMER SETUP;;;;;;;;;;;;;;;;;;;;;;
+	lda #0																				; Reset timer 4 byte value
+	ldx #3
+time_reset:							
+	sta systime, x																; Reset systime 
+	sta last_refresh, x														; Reset lcd last refresh time
+	dex
+	bpl time_reset																; Branch when x is not negative
+	lda #%10100000																;	Enable interrupts from Timer2
+	sta IER	
+	lda #%00000000																; Set Timer 2 mode to timed interrupts
+	sta ACR	
+	lda	TIMER_LBYTE 															; Load count value in timer latch/counter
+	sta	T2LOW 	
+	lda TIMER_HBYTE																; This automatically starts the timer
+	sta T2HIGHC
+
 	;	Store number 510 in ram
 	lda #%11111110	; Store lower byte of 16 bit number
 	sta number
 	lda #%00000001	; Store higher byte of 16 bit number
 	sta number+1
 
+	;;;;;;;;;;;;BCD SETUP;;;;;;;;;;;;;;
 	lda #0														; Setting null terminator for bcd array
 	sta bcd + 5
-
-	lda #0  ;	Reset mod10 bytes
+	lda #0  													;	Reset mod10 bytes
 	sta mod10
 	sta mod10+1
-
-	lda #16	;	Load default iterations value
+	lda #16														;	Load iteration num
 	sta iterations
+	clc																; Clear carry flag => this carry flag is the first bit to be pushed into number
 
-	clc	; Clear carry flag => this carry flag is the first bit to be pushed into number
-
-bcd:
+bcd_compute:
 	lda #0
 	ldx #4
 reset_bytes:
@@ -135,9 +162,15 @@ print_loop:
 	inx
 	jmp print_loop
 loop:
+	lda	systime
+	cmp #250
+	bne loop
+	lda #"."
+	jsr print_char
   jmp loop
 
 lcd_wait:
+	sei												;	Disable interrupt when waiting for lcd
   pha
   lda #%00000000  ; Port B is input
   sta DDRB
@@ -155,6 +188,7 @@ lcdbusy:
   lda #%11111111  ; Port B is output
   sta DDRB
   pla
+	cli												;	Enable Interrupt
   rts
 
 lcd_instruction:
@@ -163,9 +197,11 @@ lcd_instruction:
   lda #0         ; Clear RS/RW/E bits
   sta PORTA
   lda #E         ; Set E bit to send instruction
+	sei						 ; Disable Interrupts
   sta PORTA
   lda #0         ; Clear RS/RW/E bits
   sta PORTA
+	cli						 ; Enable interrupts
   rts
 
 print_char:
@@ -174,11 +210,56 @@ print_char:
   lda #RS         ; Set RS; Clear RW/E bits
   sta PORTA
   lda #(RS | E)   ; Set E bit to send instruction
+	sei							; Disable Interrupts
   sta PORTA
   lda #RS         ; Clear E bits
   sta PORTA
+	cli						  ; Enable interrupts
   rts
 
-  .org $fffc
+nmi: rti						
+irq:
+	pha							; Push mcu state into stack 
+	txa
+	pha
+	tya
+	pha
+	
+	lda IFR
+	asl
+	asl
+	asl
+	bcs systimer
+	jmp end_interrupt
+
+systimer:																; Add 1ms to systime and carry to all bytes(3)
+	lda systime
+	adc #1
+	sta systime
+	ldx #1
+carry_loop:
+	lda systime,x
+	adc #0
+	sta systime,x
+	inx
+	cpx #4
+	bne carry_loop
+	
+	lda TIMER_LBYTE												; Restart timer2
+	sta T2LOW
+	lda TIMER_HBYTE
+	sta T2HIGHC
+	jmp end_interrupt	
+	
+end_interrupt:
+	pla																		; Recover mcu state to before interrupt
+	tay
+	pla
+	tax
+	pla
+	rti
+
+  .org $fffa
+	.word nmi
   .word reset
-  .word $0000
+  .word irq
