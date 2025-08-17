@@ -1,4 +1,4 @@
-;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Adding vram functionallity
+;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO 
 ;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;
 PORTB    = $6000
 PORTA    = $6001
@@ -164,21 +164,9 @@ shift_loop:										; Shifts bytes to right to represent numbers in normal form
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	beq vram_update
+	beq update_display 
 	jmp devide_loop
 
-vram_update:
-	jsr vram_reset						; Reset vram first
-	ldx #0
-	ldy #11
-append_bcd:
-	lda bcd,x
-	beq	escape								; Escape loop when null byte(array terminator) read
-	sta vram,y	
-	inx
-	iny
-	jmp	append_bcd 
-escape:
 update_display:
 	lda #%00000010						; Setting cursor to home position
 	jsr lcd_instruction
@@ -193,24 +181,24 @@ loop:
 	sec												; Calculating timedelta from timestamp
 	lda systime
 	sbc	timestamp
-	cmp #100
-	bne pass									; Check if its time for display on off toggle: if its not same, then pass
+	cmp #50
+	bne pass									; Check time  
 	lda systime
 	sta timestamp
-	ldx display_on						; Get current display status: not zero = on
-	beq turn_on
-turn_off:										; Just for fun: toggling lcd display on and off
-	lda #%00001000
-	jsr lcd_instruction
-	ldx #%00000000
-	stx display_on	
-	jmp pass
-turn_on:
-	lda #%00001110
-	jsr lcd_instruction
-	ldx #%00001111
-	stx display_on	
-pass:
+
+vram_update:								; Update vram contents only at certain intervals
+	jsr vram_reset						; Reset vram first
+	ldx #0
+	ldy #11
+append_bcd:									; Update bcd with new bcd converted system time
+	lda bcd,x
+	beq	escape								; Escape loop when null byte(array terminator) read
+	sta vram,y	
+	inx
+	iny
+	jmp	append_bcd 
+escape:
+pass:												; Continusly compute bcd from system time
 	lda systime
 	sta number
 	lda systime + 1
@@ -265,7 +253,7 @@ print_char:
 
 vram_reset:
 	ldx #0																			; Reset vram data
-	lda #0
+	lda #%00010000															; Empty lcd character
 vram_reset_loop:
 	sta	vram,x
 	inx
