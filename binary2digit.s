@@ -1,5 +1,6 @@
-;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO 
-;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;
+;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Add three buttons, and display temporary messagee when pushed int
+;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;				; TODO Check vram update speed, and adjust
+																							; TODO THERE SEEMS SOME PROBLEM WITH DISPLAY UPDATE LOOP!
 PORTB    = $6000
 PORTA    = $6001
 DDRB     = $6002
@@ -9,6 +10,7 @@ T2HIGHC  = $6009																;	T2 high order counter(r/w)
 ACR      = $600B																; Timer, shift register, ab port latch control(Aux control register)
 IFR			 = $600D																;	InterruptFlagRegister IRQ|TIMER1|TIMER2|CB1|CB2|SHIFTREGISTER|CA1|CA2'
 IER			 = $600E																;	Interrupt Enable Register, 7th bit set/clear 
+PCR			 = $600C																; C## perphi control register
 ;;;;;;;;;;;;;SYSTEM TIME;;;;;;;;;;;;;;;;;
 TIMER_HBYTE		 = %00000011											; Clock cycle number that translates into 1 milisecond (10^3)
 TIMER_LBYTE		 = %11101000
@@ -28,6 +30,9 @@ number = $0200																; Two bytes => value to convert to bcd
 mod10 = $0202																	; Two bytes 
 bcd = $0204																		; 6 bytes => bcd data
 iterations = $020A														; 1 byte => usually 0~16
+;;;;;;;;;;;;;;PERPHI;;;;;;;;;;;;;;;;;;;
+upbutton 			 = $505B												; Indicator if up button is pressed. Updated by interrupt logic
+																							; and cleared by screen update logic
 
   .org $8000
 
@@ -90,6 +95,14 @@ time_reset:
 	sta timestamp
 	lda #0 
 	sta timedelta 
+	;;;;;;;;PERPHI SETUP;;;;;;;;;;;;;;
+	lda #%00000000										; Set C ports to negative active edge trigger, 
+	sta PCR
+	lda #%10010000										; Enable Interrupts
+	sta IER
+	lda #%00000000										; Upbutton initalzed to not pressed
+	sta upbutton
+	
 
 	cli																; Interrupt Enable
 bcd_compute:
@@ -181,7 +194,7 @@ loop:
 	sec												; Calculating timedelta from timestamp
 	lda systime
 	sbc	timestamp
-	cmp #50
+	cmp #5
 	bne pass									; Check time  
 	lda systime
 	sta timestamp
@@ -192,12 +205,31 @@ vram_update:								; Update vram contents only at certain intervals
 	ldy #11
 append_bcd:									; Update bcd with new bcd converted system time
 	lda bcd,x
-	beq	escape								; Escape loop when null byte(array terminator) read
+	beq	escape_bcd						; Escape loop when null byte(array terminator) read
 	sta vram,y	
 	inx
 	iny
 	jmp	append_bcd 
-escape:
+escape_bcd:
+check_buttonpress:
+	lda	upbutton
+	beq escape_bt
+append_buttonpress:					; TODO for debugging
+	lda #"B"
+	sta vram + 41
+	lda #"u"
+	sta vram + 42
+	lda #"t"
+	sta vram + 43
+	lda #"t"
+	sta vram + 44
+	lda #"o"
+	sta vram + 45
+	lda #"n"
+	sta vram + 46
+	lda #%00000000						; Button press read, reseting 
+	sta upbutton
+escape_bt:
 pass:												; Continusly compute bcd from system time
 	lda systime
 	sta number
@@ -275,6 +307,8 @@ irq:
 	asl
 	asl
 	bcs systimer
+	asl
+	bcs buttonclick
 	jmp end_interrupt
 
 systimer:																; Add 1ms to systime and carry to all bytes(3)
@@ -293,6 +327,12 @@ carry_loop:
 	lda TIMER_HBYTE												; Restart timer2
 	sta T2HIGHC
 	jmp end_interrupt	
+
+buttonclick:
+	lda #%11111111												; Storing anything but zero
+	sta upbutton
+	bit PORTB															; Clearing interupt flag
+	jmp end_interrupt
 	
 end_interrupt:
 	pla																		; Recover mcu state to before interrupt
