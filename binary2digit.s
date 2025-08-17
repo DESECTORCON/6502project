@@ -1,4 +1,4 @@
-;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;
+;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Adding vram functionallity
 ;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;
 PORTB    = $6000
 PORTA    = $6001
@@ -21,7 +21,7 @@ E  						 = %00000100
 RW 						 = %00000010
 RS 						 = %00000001
 last_refresh 	 = $5004													; Last lcd refresh time. 4 byte value
-display_data   = $5008													; Lcd display buffer. 80 byte length 5008~5057
+vram					 = $5008													; Lcd display buffer. 80 byte length 5008~5057
 display_on		 = $5058
 ;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;
 number = $0200																; Two bytes => value to convert to bcd
@@ -48,6 +48,7 @@ reset:
   jsr lcd_instruction
   lda #$00000001 ; Clear display
   jsr lcd_instruction
+	jsr vram_reset
 
 	;;;;;;;;;;;;;;;;;TIMER SETUP;;;;;;;;;;;;;;;;;;;;;;
 	lda #0																				; Reset timer 4 byte value
@@ -163,19 +164,31 @@ shift_loop:										; Shifts bytes to right to represent numbers in normal form
 
 	lda number	;	 Check if Last division resulated in zero 
 	ora number + 1	
-	beq print
+	beq vram_update
 	jmp devide_loop
 
-print:
+vram_update:
+	jsr vram_reset						; Reset vram first
+	ldx #0
+	ldy #11
+append_bcd:
+	lda bcd,x
+	beq	escape								; Escape loop when null byte(array terminator) read
+	sta vram,y	
+	inx
+	iny
+	jmp	append_bcd 
+escape:
+update_display:
 	lda #%00000010						; Setting cursor to home position
 	jsr lcd_instruction
 	ldx #0
-print_loop:
-	lda bcd,x
-	beq	loop 									; Escape loop when null byte(array terminator) read
-	jsr print_char						; 
+update_display_loop:				;	Printing one byte at a time 
+	lda vram,x
+	jsr print_char				
 	inx
-	jmp print_loop
+	cpx #80
+	bne update_display_loop
 loop:
 	sec												; Calculating timedelta from timestamp
 	lda systime
@@ -249,6 +262,17 @@ print_char:
   sta PORTA
 	cli						  ; Enable interrupts
   rts
+
+vram_reset:
+	ldx #0																			; Reset vram data
+	lda #0
+vram_reset_loop:
+	sta	vram,x
+	inx
+	cpx #80
+	bne vram_reset_loop
+	rts
+
 
 nmi: rti						
 irq:
