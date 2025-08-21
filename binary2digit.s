@@ -32,7 +32,9 @@ bcd 					 = $0204													; 6 bytes => bcd data
 iterations 		 = $020A													; 1 byte => usually 0~16
 ;;;;;;;;;;;;;;PERPHI;;;;;;;;;;;;;;;;;;;
 upbutton 			 = $505B												; Indicator if up button is pressed. Updated by interrupt logic
-																							; and cleared by screen update logic
+downbutton		 = $505C												; and cleared by screen update logic
+leftbutton		 = $505D
+rightbutton		 = $505E
 
   .org $8000
 
@@ -98,12 +100,19 @@ time_reset:
 	;;;;;;;;PERPHI SETUP;;;;;;;;;;;;;;
 	lda #%00000000										; Set C ports to negative active edge trigger, 
 	sta PCR
-	lda #%10010000										; Enable Interrupts
+	lda #%10011011										; Enable Interrupts
 	sta IER
 	lda #%00000000										; Upbutton initalzed to not pressed
 	sta upbutton
-
+	sta downbutton
+	sta leftbutton
+	sta rightbutton
 	cli																; Interrupt Enable
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;MAIN LOOP;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 bcd_compute:
 	lda #0
 	ldx #4
@@ -193,7 +202,7 @@ loop:
 	sec												; Calculating timedelta from timestamp
 	lda systime
 	sbc	timestamp
-	cmp #2										; TODO Adjust this to optimal 
+	cmp #2										; TODO Display update speed(clock ticks between display updates)
 	bmi pass									; Check time. if sub is less than 5, passes vram update  
 	lda systime
 	sta timestamp
@@ -212,22 +221,43 @@ append_score:								; Update bcd with new bcd converted system time
 escape_score_update:
 check_buttonpress:
 	lda	upbutton							; Button pressed indicator stored by interrupt
-	beq escape_bt
-append_buttonpress:					; TODO for debugging
-	lda #"B"
+	bne uppress
+	lda downbutton
+	bne downpress
+	lda leftbutton
+	bne leftpress
+	lda rightbutton
+	bne rightpress
+	jmp escape_bt				; If none pressed, skip
+uppress:
+	lda #"U"
 	sta vram + 40
-	lda #"u"
+	lda #"P"
 	sta vram + 41
-	lda #"t"
-	sta vram + 42
-	lda #"t"
-	sta vram + 43
-	lda #"o"
-	sta vram + 44
-	lda #"n"
-	sta vram + 45
+	jmp done_buttonpress
+downpress:
+	lda #"D"
+	sta vram + 40
+	lda #"O"
+	sta vram + 41
+	jmp done_buttonpress
+leftpress:
+	lda #"L"
+	sta vram + 40
+	lda #"F"
+	sta vram + 41
+	jmp done_buttonpress
+rightpress:
+	lda #"R"
+	sta vram + 40
+	lda #"I"
+	sta vram + 41
+done_buttonpress:
 	lda #%00000000						; Button press read, reseting 
 	sta upbutton
+	sta downbutton
+	sta leftbutton	
+	sta rightbutton
 escape_bt:
 pass:												; Continusly compute bcd from system time
 	lda systime
@@ -236,6 +266,10 @@ pass:												; Continusly compute bcd from system time
 	sta number + 1
 	jmp bcd_compute
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;LIBRARYS;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 lcd_wait:
   pha
   lda #%00000000  ; Port B is input
@@ -292,6 +326,9 @@ vram_reset_loop:
 	bne vram_reset_loop
 	rts
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;INTERRUPTS;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 nmi: rti						
 irq:
@@ -307,7 +344,14 @@ irq:
 	asl
 	bcs systimer
 	asl
-	bcs buttonclick
+	bcs upbuttonclick
+	asl
+	bcs downbuttonclick
+	asl
+	asl
+	bcs leftbuttonclick
+	asl
+	bcs rightbuttonclick
 	jmp end_interrupt
 
 systimer:																; Add 1ms to systime and carry to all bytes(3)
@@ -327,11 +371,27 @@ carry_loop:
 	sta T2HIGHC
 	jmp end_interrupt	
 
-buttonclick:
+upbuttonclick:
 	lda #%11111111												; Storing anything but zero
 	sta upbutton
 	bit PORTB															; Clearing interupt flag
 	jmp end_interrupt
+downbuttonclick:
+	lda #%11111111												; Storing anything but zero
+	sta downbutton
+	bit PORTB															; Clearing interupt flag
+	jmp end_interrupt
+leftbuttonclick:
+	lda #%11111111												; Storing anything but zero
+	sta leftbutton
+	bit PORTA															; Clearing interupt flag
+	jmp end_interrupt
+rightbuttonclick:
+	lda #%11111111												; Storing anything but zero
+	sta rightbutton
+	bit PORTA															; Clearing interupt flag
+	jmp end_interrupt
+
 	
 end_interrupt:
 	pla																		; Recover mcu state to before interrupt
