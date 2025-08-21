@@ -1,4 +1,4 @@
-;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Add three buttons, and display temporary messagee when pushed int
+;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Random objects scrolling row 2
 ;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;				; TODO 
 																							; TODO 
 PORTB    = $6000
@@ -35,6 +35,8 @@ upbutton 			 = $505B												; Indicator if up button is pressed. Updated by 
 downbutton		 = $505C												; and cleared by screen update logic
 leftbutton		 = $505D
 rightbutton		 = $505E
+;;;;;;;;;;;;RANDOM;;;;;;;;;;;;;;;;;;;;;	
+r_seed 				 = $505F													; This is a random number, so resetting in the reset block isn't needed
 
   .org $8000
 
@@ -203,7 +205,7 @@ loop:
 	lda systime
 	sbc	timestamp
 	cmp #2										; TODO Display update speed(clock ticks between display updates)
-	bmi pass									; Check time. if sub is less than 5, passes vram update  
+	bmi	steppingstone_pass_vupdate					; Check time. if sub is less than 5, passes vram update  
 	lda systime
 	sta timestamp
 
@@ -219,6 +221,36 @@ append_score:								; Update bcd with new bcd converted system time
 	iny
 	jmp	append_score 
 escape_score_update:
+spawn_objects:							; Spawn objects at random intervals at the rightmost edge, row 2 of lcd
+	jsr rand_8								; This will store a 0~255 random number at pointer r_seed
+	lda r_seed
+	cmp #100
+	bmi escape_spawn_objects
+	lda #%11111100
+	sta vram + 79
+escape_spawn_objects:
+move_objects:								; Loop through row 2 lcd vram and if object detected(11111100), move it left
+	ldx #39
+move_objects_loop:					; If object is in vram, delete it and store it before the current address
+	inx
+	cpx #80
+	beq escape_move_loop	
+	lda vram,x
+	cmp #%11111100
+	bne move_objects_loop
+	cpx #40										; If object is at the most left, only delete it	
+	beq delete_object
+	dex
+	lda #%11111100
+	sta vram,x
+	inx	
+delete_object:
+	lda #0										
+	sta vram,x
+	jmp move_objects_loop	
+escape_move_loop:
+steppingstone_pass_vupdate:		; 6502 cpu limitation of jump addr length limit
+	bmi pass_vupdate
 check_buttonpress:
 	lda	upbutton							; Button pressed indicator stored by interrupt
 	bne uppress
@@ -259,7 +291,7 @@ done_buttonpress:
 	sta leftbutton	
 	sta rightbutton
 escape_bt:
-pass:												; Continusly compute bcd from system time
+pass_vupdate:								; Continusly compute bcd from system time
 	lda systime
 	sta number								; Loading systime into number to compute bcd
 	lda systime + 1
@@ -324,6 +356,41 @@ vram_reset_loop:
 	inx
 	cpx #80
 	bne vram_reset_loop
+	rts
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;RANDOM NUM GEN;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+rand_8:						; Must be called with jsr(jump to subroutine)
+	pha							; Push mcu state into stack 
+	txa
+	pha
+	tya
+	pha
+
+	lda r_seed
+	and #$b8
+	ldx #$05
+	ldy #$00
+F_loop:
+	asl 
+	bcc bit_clr
+	iny
+bit_clr:
+	dex 
+	bne F_loop
+no_clr:
+	tya
+	lsr	
+	lda	r_seed
+	rol
+	sta r_seed
+
+	pla																		; Recover mcu state to before interrupt
+	tay
+	pla
+	tax
+	pla
 	rts
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
