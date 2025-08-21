@@ -1,6 +1,6 @@
 ;DOCUMENT VIEW TABSPACE SHOULD BE SET TO 2;		; TODO Add three buttons, and display temporary messagee when pushed int
-;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;				; TODO Check vram update speed, and adjust
-																							; TODO THERE SEEMS SOME PROBLEM WITH DISPLAY UPDATE LOOP!
+;;;;;;;;;;;;;;;;;;VIA;;;;;;;;;;;;;;;;;;				; TODO 
+																							; TODO 
 PORTB    = $6000
 PORTA    = $6001
 DDRB     = $6002
@@ -26,10 +26,10 @@ last_refresh 	 = $5004													; Last lcd refresh time. 4 byte value
 vram					 = $5008													; Lcd display buffer. 80 byte length 5008~5057
 display_on		 = $5058
 ;;;;;;;;;;;;;;;;;;BCD;;;;;;;;;;;;;;;;;;
-number = $0200																; Two bytes => value to convert to bcd
-mod10 = $0202																	; Two bytes 
-bcd = $0204																		; 6 bytes => bcd data
-iterations = $020A														; 1 byte => usually 0~16
+number				 = $0200													; Two bytes => value to convert to bcd
+mod10 				 = $0202													; Two bytes 
+bcd 					 = $0204													; 6 bytes => bcd data
+iterations 		 = $020A													; 1 byte => usually 0~16
 ;;;;;;;;;;;;;;PERPHI;;;;;;;;;;;;;;;;;;;
 upbutton 			 = $505B												; Indicator if up button is pressed. Updated by interrupt logic
 																							; and cleared by screen update logic
@@ -102,7 +102,6 @@ time_reset:
 	sta IER
 	lda #%00000000										; Upbutton initalzed to not pressed
 	sta upbutton
-	
 
 	cli																; Interrupt Enable
 bcd_compute:
@@ -194,8 +193,8 @@ loop:
 	sec												; Calculating timedelta from timestamp
 	lda systime
 	sbc	timestamp
-	cmp #5
-	bne pass									; Check time  
+	cmp #2										; TODO Adjust this to optimal 
+	bmi pass									; Check time. if sub is less than 5, passes vram update  
 	lda systime
 	sta timestamp
 
@@ -203,36 +202,36 @@ vram_update:								; Update vram contents only at certain intervals
 	jsr vram_reset						; Reset vram first
 	ldx #0
 	ldy #11
-append_bcd:									; Update bcd with new bcd converted system time
+append_score:								; Update bcd with new bcd converted system time
 	lda bcd,x
-	beq	escape_bcd						; Escape loop when null byte(array terminator) read
+	beq	escape_score_update		; Escape loop when null byte(array terminator) read
 	sta vram,y	
 	inx
 	iny
-	jmp	append_bcd 
-escape_bcd:
+	jmp	append_score 
+escape_score_update:
 check_buttonpress:
-	lda	upbutton
+	lda	upbutton							; Button pressed indicator stored by interrupt
 	beq escape_bt
 append_buttonpress:					; TODO for debugging
 	lda #"B"
-	sta vram + 41
+	sta vram + 40
 	lda #"u"
+	sta vram + 41
+	lda #"t"
 	sta vram + 42
 	lda #"t"
 	sta vram + 43
-	lda #"t"
-	sta vram + 44
 	lda #"o"
-	sta vram + 45
+	sta vram + 44
 	lda #"n"
-	sta vram + 46
+	sta vram + 45
 	lda #%00000000						; Button press read, reseting 
 	sta upbutton
 escape_bt:
 pass:												; Continusly compute bcd from system time
 	lda systime
-	sta number
+	sta number								; Loading systime into number to compute bcd
 	lda systime + 1
 	sta number + 1
 	jmp bcd_compute
